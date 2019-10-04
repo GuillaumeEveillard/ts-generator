@@ -20,10 +20,8 @@ import java.beans.Introspector
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import kotlin.reflect.*
-import kotlin.reflect.full.createType
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.isSubclassOf
-import kotlin.reflect.full.superclasses
+import kotlin.reflect.full.*
+import kotlin.reflect.jvm.internal.impl.types.KotlinType
 import kotlin.reflect.jvm.javaType
 
 /**
@@ -81,7 +79,8 @@ class TypeScriptGenerator(
     ignoreSuperclasses: Set<KClass<*>> = setOf(),
     private val intTypeName: String = "number",
     private val voidType: VoidType = VoidType.NULL,
-    private val declareClass : Boolean = false
+    private val declareClass: Boolean = false,
+    private val generateMethodPrototype: Boolean = false
 ) {
     private val visitedClasses: MutableSet<KClass<*>> = java.util.HashSet()
     private val generatedDefinitions = mutableListOf<String>()
@@ -229,6 +228,27 @@ class TypeScriptGenerator(
         
         val structureType = if(declareClass) "declare class" else "interface"
         
+        val methods = klass.declaredMemberFunctions
+                .filter { it.visibility == KVisibility.PUBLIC }
+                .map { method ->
+                    val parameters = method.parameters
+                            .filter { it.name != null }
+                            .map { it.name+": "+ formatKType(it.type).formatWithoutParenthesis()}.joinToString(", ")
+                    val returnType = if (method.returnType == Unit::class.createType()) {
+                        "void"
+                    } else {
+                        formatKType(method.returnType).formatWithoutParenthesis()
+                    }
+                    
+                    if(declareClass) {
+                        method.name + "("+parameters+"): " + returnType + ";"
+                    } else {
+                        method.name +": ("+parameters+") => "+returnType+";"
+                    }
+                 }
+
+        val methodsString = if(generateMethodPrototype && methods.isNotEmpty())  methods.joinToString("\n")+"\n" else ""
+        
         val m = klass.declaredMemberProperties
                 .filter { !isFunctionType(it.returnType.javaType) }
                 .filter {
@@ -252,6 +272,7 @@ class TypeScriptGenerator(
                 .map { p ->  "    ${p.first}: ${p.second};\n" }
                 .joinToString("") +
                 constructorString    +
+                methodsString +
             "}"
     }
 

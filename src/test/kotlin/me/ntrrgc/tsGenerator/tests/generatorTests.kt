@@ -39,10 +39,11 @@ fun assertGeneratedCode(klass: KClass<*>,
                         classTransformers: List<ClassTransformer> = listOf(),
                         ignoreSuperclasses: Set<KClass<*>> = setOf(),
                         voidType: VoidType = VoidType.NULL,
-                        declareClass : Boolean = false)
+                        declareClass: Boolean = false,
+                        generateMethodPrototype: Boolean = false)
 {
     val generator = TypeScriptGenerator(listOf(klass), mappings, classTransformers,
-        ignoreSuperclasses, intTypeName = "int", voidType = voidType, declareClass = declareClass)
+        ignoreSuperclasses, intTypeName = "int", voidType = voidType, declareClass = declareClass, generateMethodPrototype = generateMethodPrototype)
 
     val expected = expectedOutput
         .map(TypeScriptDefinitionFactory::fromCode)
@@ -101,6 +102,9 @@ class DerivedClass(val b: List<String>): BaseClass(4)
 class GenericDerivedClass<B>(a: Empty, b: List<B?>, c: ArrayList<String>): GenericClass<Empty, B, ArrayList<String>>(a, b, c, a)
 class ClassWithMethods(val propertyMethod: () -> Int) {
     fun regularMethod() = 4
+}
+class ClassWithMethodsWithParameters(val propertyMethod: () -> Int) {
+    fun regularMethod(c: ClassWithMember): ClassWithMember? = null
 }
 abstract class AbstractClass(val concreteProperty: String) {
     abstract val abstractProperty: Int
@@ -547,5 +551,47 @@ declare class ClassWithMember {
         constructor(widget: Widget);
     }
     """, widgetAsDeclareClass), declareClass = true)
+    }
+
+    it("handles ClassWithMethods and generate method prototype as declared class") {
+        assertGeneratedCode(ClassWithMethods::class, setOf("""
+    declare class ClassWithMethods {
+        regularMethod(): int;
+    }
+    """), declareClass = true, generateMethodPrototype = true)
+    }
+
+    it("handles ClassWithMethods and generate method prototype") {
+        assertGeneratedCode(ClassWithMethods::class, setOf("""
+    interface ClassWithMethods {
+        regularMethod: () => int;
+    }
+    """), declareClass = false, generateMethodPrototype = true)
+    }
+
+    it("handles ClassWithMethodsWithParameters and generate method prototype as declared class") {
+        assertGeneratedCode(ClassWithMethodsWithParameters::class, setOf(
+                """
+declare class ClassWithMember {
+    a: string;
+    constructor(a: string);
+}
+""","""
+    declare class ClassWithMethodsWithParameters {
+        regularMethod(c: ClassWithMember): ClassWithMember | null;
+    }
+    """), declareClass = true, generateMethodPrototype = true)
+    }
+
+    it("handles ClassWithMethodsWithParameters and generate method prototype") {
+        assertGeneratedCode(ClassWithMethodsWithParameters::class, setOf("""
+interface ClassWithMember {
+    a: string;
+}
+""","""
+    interface ClassWithMethodsWithParameters {
+        regularMethod: (c: ClassWithMember) => ClassWithMember | null;
+    }
+    """), declareClass = false, generateMethodPrototype = true)
     }
 })
