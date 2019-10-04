@@ -80,7 +80,8 @@ class TypeScriptGenerator(
     classTransformers: List<ClassTransformer> = listOf(),
     ignoreSuperclasses: Set<KClass<*>> = setOf(),
     private val intTypeName: String = "number",
-    private val voidType: VoidType = VoidType.NULL
+    private val voidType: VoidType = VoidType.NULL,
+    private val declareClass : Boolean = false
 ) {
     private val visitedClasses: MutableSet<KClass<*>> = java.util.HashSet()
     private val generatedDefinitions = mutableListOf<String>()
@@ -225,9 +226,10 @@ class TypeScriptGenerator(
         } else {
             ""
         }
-
-        return "interface ${klass.simpleName}$templateParameters$extendsString {\n" +
-            klass.declaredMemberProperties
+        
+        val structureType = if(declareClass) "declare class" else "interface"
+        
+        val m = klass.declaredMemberProperties
                 .filter { !isFunctionType(it.returnType.javaType) }
                 .filter {
                     it.visibility == KVisibility.PUBLIC || isJavaBeanProperty(it, klass)
@@ -240,9 +242,16 @@ class TypeScriptGenerator(
                     val propertyType = pipeline.transformPropertyType(property.returnType, property, klass)
 
                     val formattedPropertyType = formatKType(propertyType).formatWithoutParenthesis()
-                    "    $propertyName: $formattedPropertyType;\n"
+                    Pair(propertyName, formattedPropertyType)
                 }
+
+        val constructorString = if (!declareClass || m.isEmpty()) "" else "constructor(" + m.map { "${it.first}: ${it.second}" }.joinToString(", ")+");\n"
+        
+        return "$structureType ${klass.simpleName}$templateParameters$extendsString {\n" +
+            m
+                .map { p ->  "    ${p.first}: ${p.second};\n" }
                 .joinToString("") +
+                constructorString    +
             "}"
     }
 

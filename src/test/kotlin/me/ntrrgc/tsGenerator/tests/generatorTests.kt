@@ -38,10 +38,11 @@ fun assertGeneratedCode(klass: KClass<*>,
                         mappings: Map<KClass<*>, String> = mapOf(),
                         classTransformers: List<ClassTransformer> = listOf(),
                         ignoreSuperclasses: Set<KClass<*>> = setOf(),
-                        voidType: VoidType = VoidType.NULL)
+                        voidType: VoidType = VoidType.NULL,
+                        declareClass : Boolean = false)
 {
     val generator = TypeScriptGenerator(listOf(klass), mappings, classTransformers,
-        ignoreSuperclasses, intTypeName = "int", voidType = voidType)
+        ignoreSuperclasses, intTypeName = "int", voidType = voidType, declareClass = declareClass)
 
     val expected = expectedOutput
         .map(TypeScriptDefinitionFactory::fromCode)
@@ -513,5 +514,38 @@ interface Widget {
         values: { [key in Direction]: string };
     }
     """))
+    }
+
+    it("handles empty class as declare class") {
+        assertGeneratedCode(Empty::class, setOf("""
+declare class Empty {
+}
+"""), declareClass = true)
+    }
+
+    it("handles classes with a single member as declare class") {
+        assertGeneratedCode(ClassWithMember::class, setOf("""
+declare class ClassWithMember {
+    a: string;
+    constructor(a: string);
+}
+"""), declareClass = true)
+    }
+
+    val widgetAsDeclareClass = """
+    declare class Widget {
+        name: string;
+        value: int;
+        constructor(name: string, value: int);
+    }
+    """
+
+    it("handles ClassWithDependencies as declare class") {
+        assertGeneratedCode(ClassWithDependencies::class, setOf("""
+    declare class ClassWithDependencies {
+        widget: Widget;
+        constructor(widget: Widget);
+    }
+    """, widgetAsDeclareClass), declareClass = true)
     }
 })
