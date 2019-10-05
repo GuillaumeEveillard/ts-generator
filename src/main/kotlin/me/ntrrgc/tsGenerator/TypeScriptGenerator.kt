@@ -227,27 +227,8 @@ class TypeScriptGenerator(
         }
         
         val structureType = if(declareClass) "declare class" else "interface"
-        
-        val methods = klass.declaredMemberFunctions
-                .filter { it.visibility == KVisibility.PUBLIC }
-                .map { method ->
-                    val parameters = method.parameters
-                            .filter { it.name != null }
-                            .map { it.name+": "+ formatKType(it.type).formatWithoutParenthesis()}.joinToString(", ")
-                    val returnType = if (method.returnType == Unit::class.createType()) {
-                        "void"
-                    } else {
-                        formatKType(method.returnType).formatWithoutParenthesis()
-                    }
-                    
-                    if(declareClass) {
-                        method.name + "("+parameters+"): " + returnType + ";"
-                    } else {
-                        method.name +": ("+parameters+") => "+returnType+";"
-                    }
-                 }
 
-        val methodsString = if(generateMethodPrototype && methods.isNotEmpty())  methods.joinToString("\n")+"\n" else ""
+        val methodsString = if(generateMethodPrototype)  generateMethodsString(klass) else ""
         
         val m = klass.declaredMemberProperties
                 .filter { !isFunctionType(it.returnType.javaType) }
@@ -274,6 +255,28 @@ class TypeScriptGenerator(
                 constructorString    +
                 methodsString +
             "}"
+    }
+
+    private fun generateMethodsString(klass: KClass<*>): String {
+        val methods = klass.declaredMemberFunctions
+                .filter { it.visibility == KVisibility.PUBLIC }
+                .map { method ->
+                    val parameters = method.parameters
+                            .filter { it.name != null }
+                            .map { it.name + ": " + formatKType(it.type).formatWithoutParenthesis() }.joinToString(", ")
+                    val returnType = if (method.returnType == Unit::class.createType()) {
+                        "void"
+                    } else {
+                        formatKType(method.returnType).formatWithoutParenthesis()
+                    }
+
+                    if (declareClass) {
+                        method.name + "(" + parameters + "): " + returnType + ";"
+                    } else {
+                        method.name + ": (" + parameters + ") => " + returnType + ";"
+                    }
+                }
+        return if(methods.isEmpty()) "" else methods.joinToString("\n") + "\n"
     }
 
     private fun isFunctionType(javaType: Type): Boolean {
