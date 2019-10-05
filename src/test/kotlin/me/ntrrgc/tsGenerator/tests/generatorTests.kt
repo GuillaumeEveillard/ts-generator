@@ -97,6 +97,9 @@ open class GenericClass<A, out B, out C: List<Any>>(
     val c: C,
     private val privateMember: A
 )
+class SimpleGenericClass<A> {
+    val a: A? = null
+}
 open class BaseClass(val a: Int)
 class DerivedClass(val b: List<String>): BaseClass(4)
 class GenericDerivedClass<B>(a: Empty, b: List<B?>, c: ArrayList<String>): GenericClass<Empty, B, ArrayList<String>>(a, b, c, a)
@@ -104,7 +107,7 @@ class ClassWithMethods(val propertyMethod: () -> Int) {
     fun regularMethod() = 4
 }
 class ClassWithMethodsWithParameters(val propertyMethod: () -> Int) {
-    fun regularMethod(c: ClassWithMember): ClassWithMember? = null
+    fun regularMethod(c: SimpleGenericClass<Int>, d: ClassWithMember?): ClassWithMember? = null
 }
 abstract class AbstractClass(val concreteProperty: String) {
     abstract val abstractProperty: Int
@@ -572,25 +575,34 @@ declare class ClassWithMember {
     it("handles ClassWithMethodsWithParameters and generate method prototype as declared class") {
         assertGeneratedCode(ClassWithMethodsWithParameters::class, setOf(
                 """
+declare class SimpleGenericClass<A> {
+    a: A | null;
+    constructor(a: A | null);
+}
+                """.trimIndent(), """
 declare class ClassWithMember {
     a: string;
     constructor(a: string);
 }
 ""","""
     declare class ClassWithMethodsWithParameters {
-        regularMethod(c: ClassWithMember): ClassWithMember | null;
+        regularMethod(c: SimpleGenericClass<int>, d: ClassWithMember | null): ClassWithMember | null;
     }
     """), declareClass = true, generateMethodPrototype = true)
     }
 
     it("handles ClassWithMethodsWithParameters and generate method prototype") {
         assertGeneratedCode(ClassWithMethodsWithParameters::class, setOf("""
+interface SimpleGenericClass<A> {
+    a: A | null;
+}
+""","""
 interface ClassWithMember {
     a: string;
 }
 ""","""
     interface ClassWithMethodsWithParameters {
-        regularMethod: (c: ClassWithMember) => ClassWithMember | null;
+        regularMethod: (c: SimpleGenericClass<int>, d: ClassWithMember | null) => ClassWithMember | null;
     }
     """), declareClass = false, generateMethodPrototype = true)
     }
