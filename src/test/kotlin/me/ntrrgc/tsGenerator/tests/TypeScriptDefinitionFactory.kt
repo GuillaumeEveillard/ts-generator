@@ -20,7 +20,7 @@ object TypeScriptDefinitionFactory {
     fun fromCode(tsCode: String): TypeScriptDefinition {
         val code = tsCode.trim()
 
-        if (code.startsWith("interface") || code.startsWith("declare class")) {
+        if (code.startsWith("interface") || code.startsWith("export declare class")) {
             return ClassDefinition(code)
         } else if (code.startsWith("type")) {
             return EnumDefinition(code)

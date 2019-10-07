@@ -226,7 +226,7 @@ class TypeScriptGenerator(
             ""
         }
         
-        val structureType = if(declareClass) "declare class" else "interface"
+        val structureType = if(declareClass) "export declare class" else "interface"
 
         val methodsString = if(generateMethodPrototype)  generateMethodsString(klass) else ""
         
@@ -246,7 +246,7 @@ class TypeScriptGenerator(
                     Pair(propertyName, formattedPropertyType)
                 }
 
-        val constructorString = if (!declareClass || m.isEmpty()) "" else "constructor(" + m.map { "${it.first}: ${it.second}" }.joinToString(", ")+");\n"
+        val constructorString = if (!declareClass || m.isEmpty()) "" else generateConstructorString(klass)
         
         return "$structureType ${klass.simpleName}$templateParameters$extendsString {\n" +
             m
@@ -275,6 +275,19 @@ class TypeScriptGenerator(
                     } else {
                         method.name + ": (" + parameters + ") => " + returnType + ";"
                     }
+                }
+        return if(methods.isEmpty()) "" else methods.joinToString("\n") + "\n"
+    }
+
+    private fun generateConstructorString(klass: KClass<*>): String {
+        val methods = klass.constructors
+                .filter { it.visibility == KVisibility.PUBLIC }
+                .map { method ->
+                    val parameters = method.parameters
+                            .filter { it.name != null }
+                            .map { it.name + ": " + formatKType(it.type).formatWithoutParenthesis() }.joinToString(", ")
+
+                    "constructor($parameters);"
                 }
         return if(methods.isEmpty()) "" else methods.joinToString("\n") + "\n"
     }

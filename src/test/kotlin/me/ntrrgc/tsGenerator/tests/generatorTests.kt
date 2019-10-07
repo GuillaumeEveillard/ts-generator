@@ -525,14 +525,14 @@ interface Widget {
 
     it("handles empty class as declare class") {
         assertGeneratedCode(Empty::class, setOf("""
-declare class Empty {
+export declare class Empty {
 }
 """), declareClass = true)
     }
 
     it("handles classes with a single member as declare class") {
         assertGeneratedCode(ClassWithMember::class, setOf("""
-declare class ClassWithMember {
+export declare class ClassWithMember {
     a: string;
     constructor(a: string);
 }
@@ -540,7 +540,7 @@ declare class ClassWithMember {
     }
 
     val widgetAsDeclareClass = """
-    declare class Widget {
+    export declare class Widget {
         name: string;
         value: int;
         constructor(name: string, value: int);
@@ -549,7 +549,7 @@ declare class ClassWithMember {
 
     it("handles ClassWithDependencies as declare class") {
         assertGeneratedCode(ClassWithDependencies::class, setOf("""
-    declare class ClassWithDependencies {
+    export declare class ClassWithDependencies {
         widget: Widget;
         constructor(widget: Widget);
     }
@@ -558,7 +558,7 @@ declare class ClassWithMember {
 
     it("handles ClassWithMethods and generate method prototype as declared class") {
         assertGeneratedCode(ClassWithMethods::class, setOf("""
-    declare class ClassWithMethods {
+    export declare class ClassWithMethods {
         regularMethod(): int;
     }
     """), declareClass = true, generateMethodPrototype = true)
@@ -575,17 +575,17 @@ declare class ClassWithMember {
     it("handles ClassWithMethodsWithParameters and generate method prototype as declared class") {
         assertGeneratedCode(ClassWithMethodsWithParameters::class, setOf(
                 """
-declare class SimpleGenericClass<A> {
+export declare class SimpleGenericClass<A> {
     a: A | null;
-    constructor(a: A | null);
+    constructor();
 }
                 """.trimIndent(), """
-declare class ClassWithMember {
+export declare class ClassWithMember {
     a: string;
     constructor(a: string);
 }
 ""","""
-    declare class ClassWithMethodsWithParameters {
+    export declare class ClassWithMethodsWithParameters {
         regularMethod(c: SimpleGenericClass<int>, d: ClassWithMember | null): ClassWithMember | null;
     }
     """), declareClass = true, generateMethodPrototype = true)
